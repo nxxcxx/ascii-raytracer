@@ -188,7 +188,7 @@ var viewport = new PixelsArray(new vec2(100, 60));
 
 function main(time) {
 
-	var cdist = 2.3;
+	var cdist = 4.0;
 	var cpos  = new vec3(cdist * Math.cos(time), -0.75, cdist * Math.sin(time));
 	var ctgt  = new vec3(0, 0, 0);
 	var fw    = ctgt.sub(cpos).normalize();
@@ -204,8 +204,8 @@ function main(time) {
 			var uv = new vec2(u/viewport.resolution.x*2 - 1, v/viewport.resolution.y*2 - 1);
 			uv.x *=	viewport.resolution.x/viewport.resolution.y;
 
-			var focalLength = 1.0;
-			var rd = fw.mul(focalLength).add( right.mul(uv.x) ).add( up.mul(uv.y) );
+			var focalLength = 2.0;
+			var rd = fw.mul(focalLength).add( right.mul(uv.x) ).add( up.mul(uv.y) ).normalize();
 
 			var p = raymarch(ro, rd);
 			if (p) {	// if ray intersect object
