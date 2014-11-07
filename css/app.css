@@ -1,4 +1,5 @@
 html {
     font-family: "Courier New", Courier, monospace;
-    letter-spacing: 8px;
+    letter-spacing: -2px;
+    line-height: 6px;
 }

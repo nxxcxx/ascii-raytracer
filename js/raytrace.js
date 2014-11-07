@@ -132,31 +132,65 @@ vec3.prototype = {
 
 function getNormal(p) {
 	var EPS = 0.001;
-	var res = new vec3( p.add(new vec3(EPS, 0, 0)) - p.sub(new vec3(EPS, 0, 0)),
-						p.add(new vec3(0, EPS, 0)) - p.sub(new vec3(0, EPS, 0)),
-						p.add(new vec3(0, 0, EPS)) - p.sub(new vec3(0, 0, EPS)));
+	var res = new vec3( p.add(new vec3(EPS, 0, 0)).sub(  p.sub(new vec3(EPS, 0, 0) )),
+						p.add(new vec3(0, EPS, 0)).sub(  p.sub(new vec3(0, EPS, 0) )),
+						p.add(new vec3(0, 0, EPS)).sub(  p.sub(new vec3(0, 0, EPS) )));
 
 	return res.normalize();
 }
 
 
 
-function dsSphere(p, r) {	// input vec3, float
+function sdCapsule(p, a, b, r) {
+	var pa = p.sub(a);
+	var ba = b.sub(a);
+	var h = pa.dot(ba)/ba.dot(ba);
+	if (h<0) h = 0;
+	if (h>1) h = 1;
+	var bah = ba.mul(h);
+	var x = pa.sub(bah);
+	return x.length() - r;
+}
+
+function sdSphere(p, r) {	// input vec3, float
 	return p.length() - r;
 }
 
+function opu(a, b) {
+	return Math.min(a, b);
+}
+
 function map(p) {	// input: vec3
-	return dsSphere(p, 1.0);
+	// return sdSphere(p, 1.0);
+
+	var linewidth = 0.08;
+	var d = Number.POSITIVE_INFINITY;
+
+	d = opu(d, sdCapsule(p, new vec3(-1.5, 0.5, 0), new vec3(0, -1.5, 0), linewidth ));
+	d = opu(d, sdCapsule(p, new vec3(1.5, 0.5, 0), new vec3(0, -1.5, 0), linewidth ));
+	d = opu(d, sdCapsule(p, new vec3(0, 0.5, 1.5), new vec3(0, -1.5, 0), linewidth ));
+	d = opu(d, sdCapsule(p, new vec3(0, 0.5, -1.5), new vec3(0, -1.5, 0), linewidth ));
+
+	d = opu(d, sdCapsule(p, new vec3(-1.5, 0.5, 0), new vec3(0, 0.5, 1.5), linewidth ));
+	d = opu(d, sdCapsule(p, new vec3(0, 0.5, -1.5),  new vec3(-1.5, 0.5, 0), linewidth ));
+	d = opu(d, sdCapsule(p, new vec3(0, 0.5, -1.5),  new vec3(1.5, 0.5, 0), linewidth ));
+	d = opu(d, sdCapsule(p, new vec3(0, 0.5, 1.5),  new vec3(1.5, 0.5, 0), linewidth ));
+
+	return d;
 }
 
 
 // todo invert UV 
-var viewport = new PixelsArray(new vec2(40, 30));
+var viewport = new PixelsArray(new vec2(100, 60));
+
+
+// this is flipped coord fron GLSL! we loop through array starting from top left not bottom left!! ******
 
 function main(time) {
 
-	var cpos  = new vec3(0, 0, 2 + Math.sin(time*0.001)*2.0 );
-	var ctgt  = new vec3();
+	var cdist = 2.3;
+	var cpos  = new vec3(cdist * Math.cos(time), -0.75, cdist * Math.sin(time));
+	var ctgt  = new vec3(0, 0, 0);
 	var fw    = ctgt.sub(cpos).normalize();
 	var right = fw.cross(new vec3(0, 1, 0)).normalize();
 	var up    = right.cross(fw).normalize();
@@ -177,14 +211,15 @@ function main(time) {
 			if (p) {	// if ray intersect object
 				
 				var normal = getNormal(p);
-				var lightDir = new vec3(0, 1, 0).normalize();
-				var intensity = max(normal.dot(lightDir), 0);
+				var lightDir = new vec3(1, 1, 1);
+				lightDir = lightDir.normalize();
+				var intensity = normal.dot(lightDir);
 
-				if (intensity > 0.9) {
-					viewport.set(new vec2(u, v), '*');
-				} else {
-					viewport.set(new vec2(u, v), '+');
-				}
+				// if (intensity > 0.5) {
+					viewport.set(new vec2(u, v), 'x');
+				// } else {
+					// viewport.set(new vec2(u, v), '#');
+				// }
 
 
 			} 
@@ -199,7 +234,7 @@ function raymarch(ro, rd) {
 
 	var EPS = 0.001;
 	var MAX_STEP = 128;
-	var MAXD = 50;
+	var MAXD = 60;
 	var SETEP_REDUCTION = 0.85;
 		
 	var t = 0;
@@ -237,13 +272,11 @@ var temp = new vec2();
 
 	requestAnimationFrame(render);
 
-	main(time);
-
+	main(time*0.001);
 	viewport.render();
 	viewport.clearPixels();
 
 })();
-
 
 document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 function onDocumentMouseMove( event ) {
